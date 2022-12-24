@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import generics, response, pagination
 from .models import Book, Category
 from .serializers import CategorySerializer, BookListSerializer, BookSerializer
@@ -29,6 +30,21 @@ class BookList(generics.ListAPIView):
     queryset = Book.objects.all().order_by('category')
     serializer_class = BookListSerializer
     pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        keyword = self.request.query_params.get('keyword', None)
+        if keyword:
+            queryset = queryset.filter(
+                Q(name__icontains=keyword) |
+                Q(author__name__icontains=keyword) |
+                Q(lead_text__icontains=keyword)
+            )
+        category = self.request.query_params.get('category', None)
+        if category:
+            queryset = queryset.filter(category=category)
+
+        return queryset
 
 
 class BookDetail(generics.RetrieveAPIView):
